@@ -4,10 +4,11 @@ Yii::setAlias('@webroot', realpath(__DIR__ . '/../../../'));
 
 Yii::setAlias('@app', '@webroot/protected');
 Yii::setAlias('@humhub', '@app/humhub');
+Yii::setAlias('@config', '@app/config');
 
 $config = [
     'name' => 'HumHub',
-    'version' => '1.0.0-beta.3',
+    'version' => '1.1.0-beta.2',
     'basePath' => dirname(__DIR__) . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR,
     'bootstrap' => ['log', 'humhub\components\bootstrap\ModuleAutoLoader'],
     'sourceLanguage' => 'en',
@@ -26,12 +27,17 @@ $config = [
                 [
                     'class' => 'yii\log\DbTarget',
                     'levels' => ['error', 'warning'],
+                    'except' => ['yii\web\HttpException:404'],
                     'logVars' => ['_GET', '_SERVER'],
                 ],
             ],
         ],
         'search' => array(
             'class' => 'humhub\modules\search\engine\ZendLuceneSearch',
+        ),
+        'settings' => array(
+            'class' => 'humhub\components\SettingsManager',
+            'moduleId' => 'base',
         ),
         'i18n' => [
             'class' => 'humhub\components\i18n\I18N',
@@ -54,8 +60,13 @@ $config = [
                 ],
             ],
         ],
+        'formatter' => [
+            'class' => 'humhub\components\i18n\Formatter',
+        ],
+        /**
+         * Deprecated
+         */
         'formatterApp' => [
-            // Used to format date/times in applications timezone
             'class' => 'yii\i18n\Formatter',
         ],
         'cache' => [
@@ -72,6 +83,10 @@ $config = [
                 ],
             ],
         ],
+        'assetManager' => [
+            'class' => '\humhub\components\AssetManager',
+            'appendTimestamp' => true,
+        ],
         'view' => [
             'class' => '\humhub\components\View',
             'theme' => [
@@ -87,18 +102,15 @@ $config = [
             'charset' => 'utf8',
             'enableSchemaCache' => true,
         ],
-        'assetManager' => [
-            'bundles' => [
-                'yii\bootstrap\BootstrapAsset' => [
-                    'css' => []
-                ],
-            ],
+        'authClientCollection' => [
+            'class' => 'humhub\modules\user\authclient\Collection',
+            'clients' => [],
         ],
     ],
     'params' => [
         'installed' => false,
         'databaseInstalled' => false,
-        'dynamicConfigFile' => '@app/config/dynamic.php',
+        'dynamicConfigFile' => '@config/dynamic.php',
         'moduleAutoloadPaths' => ['@app/modules', '@humhub/modules'],
         'moduleMarketplacePath' => '@app/modules',
         'availableLanguages' => [
@@ -141,9 +153,18 @@ $config = [
         'user' => [
             // Minimum username length
             'minUsernameLength' => 4,
+            // Administrators can change profile image/banners of alle users
+            'adminCanChangeProfileImages' => false
+        ],
+        'ldap' => [
+            // LDAP date field formats
+            'dateFields' => [
+            //'birthday' => 'Y.m.d'
+            ],
         ],
         'formatter' => [
             // Default date format, used especially in DatePicker widgets
+            // Deprecated: Use Yii::$app->formatter->dateInputFormat instead.
             'defaultDateFormat' => 'short',
             // Seconds before switch from relative time to date format
             // Set to false to always use relative time in TimeAgo Widget
@@ -163,9 +184,17 @@ $config = [
             'apiEnabled' => true,
             'apiUrl' => 'https://api.humhub.com',
         ],
+        'search' => [
+            'zendLucenceDataDir' => '@runtime/searchdb',
+        ],
         'curl' => [
             // Check SSL certificates on CURL requests
             'validateSsl' => true,
+        ],
+        // Allowed languages limitation (optional)
+        'allowedLanguages' => [],
+        'tour' => [
+            'acceptableNames' => ['interface', 'administration', 'profile', 'spaces']
         ],
     ]
 ];

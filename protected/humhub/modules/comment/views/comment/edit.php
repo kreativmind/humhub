@@ -14,7 +14,7 @@ use yii\helpers\Url;
 
     <!-- create contenteditable div for HEditorWidget to place the data -->
     <div id="comment_input_<?php echo $comment->id; ?>_contenteditable" class="form-control atwho-input"
-         contenteditable="true"><?php echo \humhub\widgets\RichText::widget(['text' => $comment->message]); ?></div>
+         contenteditable="true"><?php echo \humhub\widgets\RichText::widget(['text' => $comment->message, 'edit' => true]); ?></div>
 
 
     <?php
@@ -40,7 +40,7 @@ use yii\helpers\Url;
 
         <?php
         echo \humhub\widgets\AjaxButton::widget([
-            'label' => "Save",
+            'label' => Yii::t('CommentModule.views_edit', 'Save'),
             'ajaxOptions' => [
                 'type' => 'POST',
                 'beforeSend' => new yii\web\JsExpression('function(html){  $("#comment_input_' . $comment->id . '_contenteditable").hide(); showLoader("' . $comment->id . '"); }'),

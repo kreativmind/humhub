@@ -2,7 +2,7 @@
 
 /**
  * @link https://www.humhub.org/
- * @copyright Copyright (c) 2015 HumHub GmbH & Co. KG
+ * @copyright Copyright (c) 2016 HumHub GmbH & Co. KG
  * @license https://www.humhub.com/licences
  */
 
@@ -37,6 +37,11 @@ class RichText extends \humhub\components\Widget
     public $minimal = false;
 
     /**
+     * @var boolean edit mode 
+     */
+    public $edit = false;
+
+    /**
      * @var \humhub\components\ActiveRecord this richtext belongs to
      */
     public $record = null;
@@ -60,8 +65,16 @@ class RichText extends \humhub\components\Widget
         if (!$this->minimal) {
             $maxOembedCount = 3; // Maximum OEmbeds
             $oembedCount = 0; // OEmbeds used
+            $that = $this;
 
-            $this->text = preg_replace_callback('/(https?:\/\/.*?)(\s|$)/i', function ($match) use (&$oembedCount, &$maxOembedCount) {
+            $pattern= <<<REGEXP
+                    /(?(R) # in case of recursion match parentheses
+				 \(((?>[^\s()]+)|(?R))*\)
+			|      # else match a link with title
+				(https?|ftp):\/\/(([^\s()]+)|(?R))+(?<![\.,:;\'"!\?\s])
+			)/x
+REGEXP;
+            $this->text = preg_replace_callback($pattern, function ($match) use (&$oembedCount, &$maxOembedCount, &$that) {
 
                 // Try use oembed
                 if ($maxOembedCount > $oembedCount) {
@@ -71,8 +84,12 @@ class RichText extends \humhub\components\Widget
                         return $oembed;
                     }
                 }
-
-                return Html::a($match[1], Html::decode($match[1]), array('target' => '_blank')) . $match[2];
+                return Html::a($match[0], Html::decode($match[0]), array('target' => '_blank'));
+            }, $this->text);
+            
+            // mark emails
+            $this->text = preg_replace_callback('/[_a-zA-Z0-9-]+(\.[_a-zA-Z0-9-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,3})/', function ($match) {
+                return Html::mailto($match[0]);
             }, $this->text);
         }
 
@@ -86,11 +103,21 @@ class RichText extends \humhub\components\Widget
             $this->text = \humhub\libs\Helpers::truncateText($this->text, $this->maxLength);
         }
 
-        $output = nl2br($this->text);
-
+        if (!$this->minimal) {
+            $output = nl2br($this->text);
+            
+        } else {
+            $output = $this->text;
+        }
+        
+        // replace leading spaces with no break spaces to keep the text format
+        $output = preg_replace_callback('/^( +)/m', function($m) {
+            return str_repeat("&nbsp;", strlen($m[1])); 
+        }, $output);
+        
         $this->trigger(self::EVENT_BEFORE_OUTPUT, new ParameterEvent(['output' => &$output]));
 
-        return $output;
+        return trim($output);
     }
 
     /**

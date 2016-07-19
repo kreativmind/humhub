@@ -1,8 +1,8 @@
 <?php
+
 use yii\helpers\Url;
 use yii\widgets\ActiveForm;
 use humhub\models\Setting;
-
 ?>
 
 <div class="modal-dialog modal-dialog-small animated fadeIn">
@@ -17,7 +17,7 @@ use humhub\models\Setting;
 
             <br><br>
 
-            <?php if (Setting::Get('internalUsersCanInvite', 'authentication_internal')) : ?>
+            <?php if ($canInviteExternal) : ?>
                 <div class="text-center">
                     <ul id="tabs" class="nav nav-tabs tabs-center" data-tabs="tabs">
                         <li class="active tab-internal"><a href="#internal"
@@ -53,7 +53,7 @@ use humhub\models\Setting;
                     ?>
 
                 </div>
-                <?php if (Setting::Get('internalUsersCanInvite', 'authentication_internal')) : ?>
+                <?php if (Yii::$app->getModule('user')->settings->get('auth.internalUsersCanInvite')) : ?>
                     <div class="tab-pane" id="external">
                         <?php echo Yii::t('SpaceModule.views_space_invite', 'You can also invite external users, which are not registered now. Just add their e-mail addresses separated by comma.'); ?>
                         <br><br>
@@ -96,19 +96,17 @@ use humhub\models\Setting;
 <script type="text/javascript">
 
     // Shake modal after wrong validation
-    <?php if ($model->hasErrors()) : ?>
-    $('.modal-dialog').removeClass('fadeIn');
-    $('.modal-dialog').addClass('shake');
+<?php if ($model->hasErrors()) : ?>
+        $('.modal-dialog').removeClass('fadeIn');
+        $('.modal-dialog').addClass('shake');
 
-    // check if there is an error at the second tab
-    <?php if ($form->error($model, 'inviteExternal') != null) : ?>
+        // check if there is an error at the second tab
 
-    // show tab
-    $('#tabs a:last').tab('show');
-
+    <?php if (Yii::$app->getModule('user')->settings->get('auth.internalUsersCanInvite') && $model->hasErrors('inviteExternal')) : ?>
+            // show tab
+            $('#tabs a:last').tab('show');
     <?php endif; ?>
-
-    <?php endif; ?>
+<?php endif; ?>
 
     $('.tab-internal a').on('shown.bs.tab', function (e) {
         $('#invite_tag_input_field').focus();

@@ -1,19 +1,21 @@
 <?php
 
+use humhub\assets\BootstrapMarkdownAsset;
 use yii\helpers\Url;
 use yii\helpers\Html;
+
+/**
+ * Register BootstrapMarkdown & changes
+ */
+BootstrapMarkdownAsset::register($this);
+$this->registerCssFile('@web/css/bootstrap-markdown-override.css');
+$this->registerJsFile('@web/js/markdownEditor.js');
 
 /**
  * Create a hidden field to store uploaded files guids
  */
 echo Html::hiddenInput('fileUploaderHiddenGuidField', "", array('id' => 'fileUploaderHiddenGuidField_' . $fieldId));
 
-
-$this->registerCssFile('@web/resources/bootstrap-markdown/css/bootstrap-markdown.min.css');
-$this->registerCssFile('@web/css/bootstrap-markdown-override.css');
-
-$this->registerJsFile('@web/resources/bootstrap-markdown/js/bootstrap-markdown.js');
-$this->registerJsFile('@web/js/markdownEditor.js');
 $this->registerJsVar('markdownPreviewUrl', $previewUrl);
 
 $translations = array(
@@ -47,6 +49,7 @@ foreach ($translations as $key => $value) {
 $translationsJS .= "};\n";
 $this->registerJs($translationsJS);
 $this->registerJs("initMarkdownEditor('" . $fieldId . "')");
+
 ?>
 
 <?php
@@ -56,7 +59,7 @@ $this->registerJs("initMarkdownEditor('" . $fieldId . "')");
  */
 ?>
 <script id="markdownEditor_dialogs_<?php echo $fieldId; ?>" type="text/placeholder">
-    <div class="modal" id="addFileModal_<?php echo $fieldId; ?>" tabindex="-1" role="dialog" aria-labelledby="addImageModalLabel" aria-hidden="true">
+    <div class="modal modal-top" id="addFileModal_<?php echo $fieldId; ?>" tabindex="-1" role="dialog" aria-labelledby="addImageModalLabel" style="z-index:99999" aria-hidden="true">
     <div class="modal-dialog">
     <div class="modal-content">
     <div class="modal-header">
@@ -87,7 +90,7 @@ $this->registerJs("initMarkdownEditor('" . $fieldId . "')");
     </div>
     </div>
 
-    <div class="modal" id="addLinkModal_<?php echo $fieldId; ?>" tabindex="-1" role="dialog" aria-labelledby="addLinkModalLabel" aria-hidden="true">
+    <div class="modal modal-top" id="addLinkModal_<?php echo $fieldId; ?>" tabindex="-1" role="dialog" style="z-index:99999" aria-labelledby="addLinkModalLabel" aria-hidden="true">
     <div class="modal-dialog">
     <div class="modal-content">
     <div class="modal-header">
@@ -115,3 +118,4 @@ $this->registerJs("initMarkdownEditor('" . $fieldId . "')");
     </div>
     </div>
 </script>
+    

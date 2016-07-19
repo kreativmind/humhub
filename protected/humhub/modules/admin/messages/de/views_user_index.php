@@ -1,9 +1,13 @@
 <?php
 return array (
-  '<strong>Manage</strong> users' => '<strong>Benutzer</strong> verwalten',
+  'Actions' => 'Aktionen',
   'Add new user' => 'Neuen Benutzer hinzufügen',
-  'In this overview you can find every registered user and manage him.' => 'In dieser Übersicht kannst du jeden registrierten Benutzer finden und verwalten.',
-  'Last login' => 'Letzte Anmeldung',
+  'Group Manager' => 'Gruppen Manager',
+  'Last login' => 'Letzter Login',
   'Overview' => 'Übersicht',
+  'Send invite' => 'Einladung senden',
+  'Settings' => 'Einstellungen',
+  'This overview contains a list of each registered user with actions to view, edit and delete users.' => 'Diese Übersicht enthält eine Liste mit allen Benutzern mit der Möglichkeit sie anzuzeigen, zu editieren oder zu löschen',
+  'Users' => 'Benutzer',
   'never' => 'Nie',
 );

@@ -1,9 +1,11 @@
 <?php
 return array (
   'Birthday' => 'День рождения',
-  'Datetime' => 'Дата',
+  'Country' => 'Страна',
+  'Date' => 'Дата',
+  'Datetime' => 'Дата и время',
   'Number' => 'Номер',
-  'Select List' => 'Выбрать',
+  'Select List' => 'Раскрывающийся список',
   'Text' => 'Текст',
   'Text Area' => 'Текстовое поле',
 );

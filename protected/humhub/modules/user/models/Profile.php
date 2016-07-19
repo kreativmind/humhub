@@ -1,5 +1,11 @@
 <?php
 
+/**
+ * @link https://www.humhub.org/
+ * @copyright Copyright (c) 2016 HumHub GmbH & Co. KG
+ * @license https://www.humhub.com/licences
+ */
+
 namespace humhub\modules\user\models;
 
 use Yii;
@@ -57,44 +63,47 @@ class Profile extends \yii\db\ActiveRecord
     {
         $rules = [
             [['user_id'], 'required'],
-            [['user_id'], 'integer'],
+            [['user_id'], 'integer']
         ];
 
         foreach (ProfileField::find()->all() as $profileField) {
-
-            // Not visible fields: Admin Only
-            if (!$profileField->visible && $this->scenario != 'editAdmin')
-                continue;
-
-            // Not Editable: only visibible on Admin Edit or Registration (if enabled)
-            if (!$profileField->editable && $this->scenario != 'editAdmin' && $this->scenario != 'registration')
-                continue;
-
-            if ($this->scenario == 'registration' && !$profileField->show_at_registration)
-                continue;
-
             $rules = array_merge($rules, $profileField->getFieldType()->getFieldRules());
         }
+        
         return $rules;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function scenarios()
     {
         $scenarios = parent::scenarios();
-        $scenarios['editAdmin'] = array();
-        $scenarios['registration'] = array();
-        $scenarios['editProfile'] = array();
+        $scenarios['editAdmin'] = [];
+        $scenarios['registration'] = [];
+        $scenarios['editProfile'] = [];
 
-        $fields = array();
+        // Get synced attributes if user is set
+        $syncAttributes = [];
+        if ($this->user !== null) {
+            $syncAttributes = \humhub\modules\user\authclient\AuthClientHelpers::getSyncAttributesByUser($this->user);
+        }
+
         foreach (ProfileField::find()->all() as $profileField) {
-            $scenarios['editAdmin'][] = $profileField->internal_name;
-            if ($profileField->editable) {
-                $scenarios['editProfile'][] = $profileField->internal_name;
-            }
-            if ($profileField->show_at_registration) {
-                $scenarios['registration'][] = $profileField->internal_name;
+            // Some fields consist of multiple field definitions (e.g. Birthday)
+            foreach($profileField->fieldType->getFieldFormDefinition() as $fieldName => $definition) {
+                $scenarios['editAdmin'][] = $fieldName;
+
+                if ($profileField->editable && !in_array($profileField->internal_name, $syncAttributes)) {
+                    $scenarios['editProfile'][] = $fieldName;
+                }
+                
+                if ($profileField->show_at_registration) {
+                    $scenarios['registration'][] = $fieldName;
+                }
             }
         }
+  
         return $scenarios;
     }
 
@@ -160,9 +169,15 @@ class Profile extends \yii\db\ActiveRecord
      */
     public function getFormDefinition()
     {
-
         $definition = array();
         $definition['elements'] = array();
+
+        $syncAttributes = [];
+        if ($this->user !== null) {
+            $syncAttributes = \humhub\modules\user\authclient\AuthClientHelpers::getSyncAttributesByUser($this->user);
+        }
+
+        $safeAttributes = $this->safeAttributes();
 
         foreach (ProfileFieldCategory::find()->orderBy('sort_order')->all() as $profileFieldCategory) {
 
@@ -174,28 +189,25 @@ class Profile extends \yii\db\ActiveRecord
 
             foreach (ProfileField::find()->orderBy('sort_order')->where(['profile_field_category_id' => $profileFieldCategory->id])->all() as $profileField) {
 
-                if (!$profileField->visible && $this->scenario != 'editAdmin')
-                    continue;
+                $profileField->editable = true;
 
-                if ($this->scenario == 'registration' && !$profileField->show_at_registration)
-                    continue;
-
-                // Mark field as editable when we are on register scenario and field should be shown at registration
-                if ($this->scenario == 'registration' && $profileField->show_at_registration)
-                    $profileField->editable = true;
-
-                // Mark field as editable when we are on adminEdit scenario
-                if ($this->scenario == 'editAdmin') {
-                    $profileField->editable = true;
+                if (!in_array($profileField->internal_name, $safeAttributes)) {
+                    if ($profileField->visible && $this->scenario != 'registration') {
+                        $profileField->editable = false;
+                    } else {
+                        continue;
+                    }
                 }
 
                 // Dont allow editing of ldap syned fields - will be overwritten on next ldap sync.
-                if ($this->user !== null && $this->user->auth_mode == User::AUTH_MODE_LDAP && $profileField->ldap_attribute != "") {
+                if (in_array($profileField->internal_name, $syncAttributes)) {
                     $profileField->editable = false;
                 }
 
                 $fieldDefinition = $profileField->fieldType->getFieldFormDefinition();
                 $category['elements'] = array_merge($category['elements'], $fieldDefinition);
+
+                $profileField->fieldType->loadDefaults($this);
             }
 
             $definition['elements']['category_' . $profileFieldCategory->id] = $category;
@@ -204,6 +216,9 @@ class Profile extends \yii\db\ActiveRecord
         return $definition;
     }
 
+    /**
+     * @inheritdoc
+     */
     public function beforeSave($insert)
     {
         foreach (ProfileField::find()->all() as $profileField) {
@@ -257,8 +272,12 @@ class Profile extends \yii\db\ActiveRecord
      */
     public function getProfileFields(ProfileFieldCategory $category = null)
     {
-        $fields = array();
+        if ($this->user === null) {
+            return [];
+        }
 
+        $fields = [];
+        
         $query = ProfileField::find();
         $query->where(['visible' => 1]);
         $query->orderBy('sort_order');
@@ -266,7 +285,6 @@ class Profile extends \yii\db\ActiveRecord
             $query->andWhere(['profile_field_category_id' => $category->id]);
         }
         foreach ($query->all() as $field) {
-
             if ($field->getUserValue($this->user) != "") {
                 $fields[] = $field;
             }

@@ -1,9 +1,8 @@
 <?php
 return array (
+  '<strong>Group</strong> members - {group}' => '',
   '<strong>Member</strong> directory' => '',
-  'Follow' => '',
   'No members found!' => '',
-  'Search' => '',
-  'Unfollow' => '',
+  'Search' => 'Căutare',
   'search for members' => '',
 );

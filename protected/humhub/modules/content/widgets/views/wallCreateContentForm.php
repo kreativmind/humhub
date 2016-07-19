@@ -48,7 +48,7 @@ use humhub\modules\space\models\Space;
             <div class="btn_container">
 
                 <?php echo \humhub\widgets\LoaderWidget::widget(['id' => 'postform-loader', 'cssClass' => 'loader-postform hidden']); ?>
-
+                
                 <?php
                 echo \humhub\widgets\AjaxButton::widget([
                     'label' => $submitButtonText,
@@ -62,6 +62,7 @@ use humhub\modules\space\models\Space;
                     ],
                     'htmlOptions' => [
                         'id' => "post_submit_button",
+                        'data-action' => 'post_create',
                         'class' => 'btn btn-info',
                         'type' => 'submit'
                 ]]);
@@ -148,22 +149,37 @@ use humhub\modules\space\models\Space;
 
         // Hide options by default
         jQuery('.contentForm_options').fadeIn();
-    });
-
-    <?php if ($defaultVisibility == humhub\modules\content\models\Content::VISIBILITY_PUBLIC) : ?>
-        // Switch from default private to public
-        changeVisibility();
-    <?php endif; ?>
+    }); 
+    
+    setDefaultVisibility();
+        
+    function setDefaultVisibility() {
+        <?php if ($defaultVisibility == humhub\modules\content\models\Content::VISIBILITY_PRIVATE) : ?>
+            setPrivateVisibility();
+        <?php endif ;?>
+                
+        <?php if ($defaultVisibility == humhub\modules\content\models\Content::VISIBILITY_PUBLIC) : ?>
+            setPublicVisibility();
+        <?php endif ;?>
+    }
+    
+    function setPublicVisibility() {
+        $('#contentForm_visibility').prop( "checked", true );
+        $('#contentForm_visibility_entry').html('<i class="fa fa-lock"></i> <?php echo Yii::t('ContentModule.widgets_views_contentForm', 'Make private'); ?>');
+        $('.label-public').removeClass('hidden');
+    }
+    
+    function setPrivateVisibility() {
+        $('#contentForm_visibility').prop( "checked", false );
+        $('#contentForm_visibility_entry').html('<i class="fa fa-unlock"></i> <?php echo Yii::t('ContentModule.widgets_views_contentForm', 'Make public'); ?>');
+        $('.label-public').addClass('hidden');
+    }
 
     function changeVisibility() {
-        if ($('#contentForm_visibility').attr('checked') != 'checked') {
-            $('#contentForm_visibility').attr('checked', 'checked');
-            $('#contentForm_visibility_entry').html('<i class="fa fa-lock"></i> <?php echo Yii::t('ContentModule.widgets_views_contentForm', 'Make private'); ?>');
-            $('.label-public').removeClass('hidden');
+        if (!$('#contentForm_visibility').prop('checked')) {
+            setPublicVisibility();
         } else {
-            $('#contentForm_visibility').removeAttr('checked');
-            $('#contentForm_visibility_entry').html('<i class="fa fa-unlock"></i> <?php echo Yii::t('ContentModule.widgets_views_contentForm', 'Make public'); ?>');
-            $('.label-public').addClass('hidden');
+            setPrivateVisibility();
         }
     }
 
@@ -185,11 +201,16 @@ use humhub\modules\space\models\Space;
             $('.userInput').remove(); // used by UserPickerWidget
             $('#notifyUserContainer').addClass('hidden');
             $('#notifyUserInput').val('');
-            $('.label-public').addClass('hidden');
+            
+            setDefaultVisibility();
+            
             $('#contentFrom_files').val('');
             $('#public').attr('checked', false);
             $('#contentForm_message_contenteditable').html('<?php echo Html::encode(Yii::t("ContentModule.widgets_views_contentForm", "What's on your mind?")); ?>');
             $('#contentForm_message_contenteditable').addClass('atwho-placeholder');
+            
+            $('#contentFormBody').find('.atwho-input').trigger('clear');
+            
             // Notify FileUploadButtonWidget to clear (by providing uploaderId)
             resetUploader('contentFormFiles');
         } else {

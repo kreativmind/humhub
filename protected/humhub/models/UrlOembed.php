@@ -56,6 +56,8 @@ class UrlOembed extends \yii\db\ActiveRecord
     public static function GetOEmbed($url)
     {
 
+        $url = trim($url);
+
         // Check if the given URL has OEmbed Support
         if (UrlOembed::HasOEmbedSupport($url)) {
 
@@ -111,7 +113,7 @@ class UrlOembed extends \yii\db\ActiveRecord
                 try {
                     $data = \yii\helpers\Json::decode($jsonOut);
                     if (isset($data['type']) && ($data['type'] === "video" || $data['type'] === 'rich' || $data['type'] === 'photo')) {
-                        $html = "<div class='oembed_snippet'>" . $data['html'] . "</div>";
+                        $html = "<div class='oembed_snippet' data-url='" . \yii\helpers\Html::encode($url) . "'>" . $data['html'] . "</div>";
                     }
                 } catch (\yii\base\InvalidParamException $ex) {
                     Yii::warning($ex->getMessage());
@@ -171,19 +173,19 @@ class UrlOembed extends \yii\db\ActiveRecord
         // Not available when open_basedir is set.
         @curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
 
-        if (Setting::Get('enabled', 'proxy')) {
-            curl_setopt($curl, CURLOPT_PROXY, Setting::Get('server', 'proxy'));
-            curl_setopt($curl, CURLOPT_PROXYPORT, Setting::Get('port', 'proxy'));
+        if (Yii::$app->settings->get('proxy.enabled')) {
+            curl_setopt($curl, CURLOPT_PROXY, Yii::$app->settings->get('proxy.server'));
+            curl_setopt($curl, CURLOPT_PROXYPORT, Yii::$app->settings->get('proxy.port'));
             curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
             curl_setopt($curl, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
             if (defined('CURLOPT_PROXYUSERNAME')) {
-                curl_setopt($curl, CURLOPT_PROXYUSERNAME, Setting::Get('user', 'proxy'));
+                curl_setopt($curl, CURLOPT_PROXYUSERNAME, Yii::$app->settings->get('proxy.user'));
             }
             if (defined('CURLOPT_PROXYPASSWORD')) {
-                curl_setopt($curl, CURLOPT_PROXYPASSWORD, Setting::Get('pass', 'proxy'));
+                curl_setopt($curl, CURLOPT_PROXYPASSWORD, Yii::$app->settings->get('proxy.pass'));
             }
             if (defined('CURLOPT_NOPROXY')) {
-                curl_setopt($curl, CURLOPT_NOPROXY, Setting::Get('noproxy', 'proxy'));
+                curl_setopt($curl, CURLOPT_NOPROXY, Yii::$app->settings->get('proxy.noproxy'));
             }
         }
         $return = curl_exec($curl);
@@ -193,12 +195,12 @@ class UrlOembed extends \yii\db\ActiveRecord
 
     /**
      * Returns all available OEmbed providers
-     * 
+     *
      * @return array
      */
     public static function getProviders()
     {
-        $providers = Setting::GetText('oembedProviders');
+        $providers = Yii::$app->settings->get('oembedProviders');
         if ($providers != "") {
             return \yii\helpers\Json::decode($providers);
         }
@@ -207,12 +209,12 @@ class UrlOembed extends \yii\db\ActiveRecord
 
     /**
      * Saves an array of available OEmbed providers
-     * 
+     *
      * @param array $providers
      */
     public static function setProviders($providers)
     {
-        Setting::SetText('oembedProviders', \yii\helpers\Json::encode($providers));
+        Yii::$app->settings->set('oembedProviders', \yii\helpers\Json::encode($providers));
     }
 
 }

@@ -160,21 +160,21 @@ class FileController extends \humhub\components\Controller
             $options['inline'] = true;
         }
 
-        if (!Setting::Get('useXSendfile', 'file')) {
+        if (!Yii::$app->getModule('file')->settings->get('useXSendfile')) {
             Yii::$app->response->sendFile($file->getStoredFilePath($suffix), $file->getFilename($suffix), $options);
         } else {
             $filePath = $file->getStoredFilePath($suffix);
-            
+
             if (strpos($_SERVER['SERVER_SOFTWARE'], 'nginx') === 0) {
                 // set nginx specific X-Sendfile header name
                 $options['xHeader'] = 'X-Accel-Redirect';
                 // make path relative to docroot
                 $docroot = rtrim($_SERVER['DOCUMENT_ROOT'], DIRECTORY_SEPARATOR);
                 if (substr($filePath, 0, strlen($docroot)) == $docroot) {
-                    $filePath = substr($file, strlen($docroot));
+                    $filePath = substr($filePath, strlen($docroot));
                 }
             }
-            
+
             Yii::$app->response->xSendFile($filePath, $file->getFilename($suffix), $options);
         }
     }

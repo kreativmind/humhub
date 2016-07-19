@@ -8,6 +8,7 @@ return array (
   'If you\'re already a member, please login with your username/email and password.' => 'Pokud jste již členem, přihlaste se prosím svým uživatelským jménem/e-mailem a heslem.',
   'Login' => 'Přihlásit se',
   'Register' => 'Registrovat',
+  'Remember me' => 'Zapamatovat přihlášení',
   'Sign in' => 'Přihlásit se',
   'email' => 'E-mailová adresa',
   'password' => 'Heslo',

@@ -2,7 +2,7 @@
 
 /**
  * @link https://www.humhub.org/
- * @copyright Copyright (c) 2015 HumHub GmbH & Co. KG
+ * @copyright Copyright (c) 2016 HumHub GmbH & Co. KG
  * @license https://www.humhub.com/licences
  */
 
@@ -32,6 +32,11 @@ use humhub\modules\content\components\ContentAddonActiveRecord;
  */
 class ContentAddonActiveRecord extends ActiveRecord implements \humhub\modules\content\interfaces\ContentTitlePreview
 {
+
+    /**
+     * @var boolean also update underlying contents last update stream sorting 
+     */
+    protected $updateContentStreamSort = true;
 
     /**
      * Content object which this addon belongs to
@@ -76,13 +81,10 @@ class ContentAddonActiveRecord extends ActiveRecord implements \humhub\modules\c
     /**
      * Returns the source of this content addon.
      *
-     * This can be a HActiveRecordContent or HActiveRecordContentAddon object.
-     *
-     * @return Mixed HActiveRecordContent or HActiveRecordContentAddon
+     * @return ContentAddonActiveRecord|ContentActiveRecord the model which this addon belongs to
      */
     public function getSource()
     {
-
         if ($this->_source != null) {
             return $this->_source;
         }
@@ -193,6 +195,10 @@ class ContentAddonActiveRecord extends ActiveRecord implements \humhub\modules\c
         // Auto follow the content which this addon belongs to
         $this->content->getPolymorphicRelation()->follow($this->created_by);
 
+        if ($this->updateContentStreamSort) {
+            $this->getSource()->content->updateStreamSortTime();
+        }
+
         return parent::afterSave($insert, $changedAttributes);
     }
 
@@ -203,4 +209,3 @@ class ContentAddonActiveRecord extends ActiveRecord implements \humhub\modules\c
 
 }
 
-?>

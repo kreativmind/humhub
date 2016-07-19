@@ -1,7 +1,9 @@
 <?php
 return array (
   'Birthday' => 'Compleanno',
-  'Datetime' => 'Data',
+  'Country' => 'Paese',
+  'Date' => 'Data',
+  'Datetime' => 'Data/ora',
   'Number' => 'Numero',
   'Select List' => 'Seleziona lista',
   'Text' => 'Testo',

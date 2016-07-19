@@ -1,9 +1,8 @@
 <?php
 return array (
+  '<strong>Group</strong> members - {group}' => '<strong>{group} اعضاي گروه</strong>',
   '<strong>Member</strong> directory' => 'لیست <strong>اعضا</strong>',
-  'Follow' => 'دنبال کردن',
   'No members found!' => 'هیچ عضوی یافت نشد!',
   'Search' => 'جستجو',
-  'Unfollow' => 'انصراف از دنبال کردن',
   'search for members' => 'جستجوی اعضا',
 );

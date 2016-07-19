@@ -22,12 +22,10 @@ class PostController extends \humhub\modules\content\components\ContentContainer
     public function actionPost()
     {
         // Check createPost Permission
-        if ($this->contentContainer instanceof \humhub\modules\space\models\Space) {
-            if (!$this->contentContainer->permissionManager->can(new \humhub\modules\post\permissions\CreatePost())) {
-                return [];
-            }
+        if (!$this->contentContainer->permissionManager->can(new \humhub\modules\post\permissions\CreatePost())) {
+            return [];
         }
-        
+
         $post = new Post();
         $post->message = \Yii::$app->request->post('message');
 
@@ -54,10 +52,14 @@ class PostController extends \humhub\modules\content\components\ContentContainer
         }
 
 
-        if ($model->load(Yii::$app->request->post()) && $model->validate() && $model->save()) {
+        if ($model->load(Yii::$app->request->post())) {
             // Reload record to get populated updated_at field
-            $model = Post::findOne(['id' => $id]);
-            return $this->renderAjaxContent($model->getWallOut(['justEdited' => true]));
+            if($model->validate() && $model->save()) {
+                $model = Post::findOne(['id' => $id]);
+                return $this->renderAjaxContent($model->getWallOut(['justEdited' => true]));
+            } else {
+                Yii::$app->response->statusCode = 400;
+            }
         }
 
         return $this->renderAjax('edit', array('post' => $model, 'edited' => $edited));

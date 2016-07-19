@@ -2,6 +2,7 @@
 
 use yii\helpers\Url;
 use yii\helpers\Html;
+use humhub\modules\friendship\models\Friendship;
 ?>
 <div class="panel panel-default">
 
@@ -44,11 +45,22 @@ use yii\helpers\Html;
 
                     <!-- Follow Handling -->
                     <div class="pull-right">
+                        <?=
+                        \humhub\modules\user\widgets\UserFollowButton::widget([
+                            'user' => $user,
+                            'followOptions' => ['class' => 'btn btn-primary btn-sm'],
+                            'unfollowOptions' => ['class' => 'btn btn-info btn-sm']
+                        ]);
+                        ?>
+
                         <?php
-                        if (!Yii::$app->user->isGuest && !Yii::$app->user->id === $user->id) {
-                            $followed = $user->isFollowedByUser();
-                            echo Html::a(Yii::t('DirectoryModule.views_directory_members', 'Follow'), 'javascript:setFollow("' . Url::to(['/user/profile/follow']) . '", "' . $user->id . '")', array('class' => 'btn btn-info btn-sm ' . (($followed) ? 'hide' : ''), 'id' => 'button_follow_' . $user->id));
-                            echo Html::a(Yii::t('DirectoryModule.views_directory_members', 'Unfollow'), 'javascript:setUnfollow("' . Url::to(['/user/profile/unfollow']) . '", "' . $user->id . '")', array('class' => 'btn btn-primary btn-sm ' . (($followed) ? '' : 'hide'), 'id' => 'button_unfollow_' . $user->id));
+                        if (!Yii::$app->user->isGuest && !$user->isCurrentUser() && Yii::$app->getModule('friendship')->getIsEnabled()) {
+                            $friendShipState = Friendship::getStateForUser(Yii::$app->user->getIdentity(), $user);
+                            if ($friendShipState === Friendship::STATE_NONE) {
+                                echo Html::a('<span class="glyphicon glyphicon-plus"></span>&nbsp;&nbsp;' . Yii::t("FriendshipModule.base", "Add Friend"), Url::to(['/friendship/request/add', 'userId' => $user->id]), array('class' => 'btn btn-primary btn-sm', 'data-method' => 'POST'));
+                            } elseif ($friendShipState === Friendship::STATE_FRIENDS) {
+                                echo Html::a('<span class="glyphicon glyphicon-ok"></span>&nbsp;&nbsp;' . Yii::t("FriendshipModule.base", "Friends"), $user->getUrl(), ['class' => 'btn btn-info btn-sm']);
+                            }
                         }
                         ?>
                     </div>
@@ -64,8 +76,13 @@ use yii\helpers\Html;
                     <div class="media-body">
                         <h4 class="media-heading"><a
                                 href="<?php echo $user->getUrl(); ?>"><?php echo Html::encode($user->displayName); ?></a>
-                                <?php if ($user->group != null) { ?>
-                                <small>(<?php echo Html::encode($user->group->name); ?>)</small><?php } ?>
+                                <?php if ($user->hasGroup()) : ?>
+                                <small>(<?=
+                                    implode(', ', array_map(function($g) {
+                                                return Html::encode($g->name);
+                                            }, $user->groups));
+                                    ?>)</small>
+                            <?php endif; ?>
                         </h4>
                         <h5><?php echo Html::encode($user->profile->title); ?></h5>
 
@@ -97,29 +114,3 @@ use yii\helpers\Html;
 <div class="pagination-container">
     <?php echo \humhub\widgets\LinkPager::widget(['pagination' => $pagination]); ?>
 </div>
-
-<script type="text/javascript">
-
-    // ajax request to follow the user
-    function setFollow(url, id) {
-        jQuery.ajax({
-            url: url,
-            type: "POST",
-            'success': function () {
-                $("#button_follow_" + id).addClass('hide');
-                $("#button_unfollow_" + id).removeClass('hide');
-            }});
-    }
-
-    // ajax request to unfollow the user
-    function setUnfollow(url, id) {
-        jQuery.ajax({
-            url: url,
-            type: "POST",
-            'success': function () {
-                $("#button_follow_" + id).removeClass('hide');
-                $("#button_unfollow_" + id).addClass('hide');
-            }});
-    }
-
-</script>

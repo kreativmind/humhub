@@ -8,19 +8,15 @@ use yii\helpers\Url;
 <script type="text/javascript">
 
     $(document).ready(function () {
+        //The original form input element will be hidden
+        var $formInput = $('#<?php echo $id; ?>').hide();
+        var placeholder = $formInput.attr('placeholder');
+        
+        var $editableContent = $('#<?php echo $id; ?>_contenteditable');
 
-        // Get placeholder
-        var placeholder = $('#<?php echo $id; ?>').attr('placeholder');
-
-        // hide original input element
-        $('#<?php echo $id; ?>').hide();
-
-        // check if contenteditable div already exists
-        if ($('#<?php echo $id; ?>_contenteditable').length == 0) {
-
-            // add contenteditable div
-            $('#<?php echo $id; ?>').after('<div id="<?php echo $id; ?>_contenteditable" class="atwho-input form-control atwho-placeholder" data-query="0" contenteditable="true">' + placeholder + '</div>');
-
+        if (!$editableContent.length) {
+            $formInput.after('<div id="<?php echo $id; ?>_contenteditable" class="atwho-input form-control atwho-placeholder" data-query="0" contenteditable="true">' + placeholder + '</div>');
+            $editableContent = $('#<?php echo $id; ?>_contenteditable');
         }
 
         var emojis = [
@@ -41,7 +37,7 @@ use yii\helpers\Url;
         });
 
         // init at plugin
-        $('#<?php echo $id; ?>_contenteditable').atwho({
+        $editableContent.atwho({
             at: "@",
             data: ["<?php echo Yii::t('base', 'Please type at least 3 characters') ?>"],
             insert_tpl: "<a href='<?php echo Url::to(['/user/profile']); ?>/&uguid=${guid}' target='_blank' class='atwho-user' data-user-guid='@-${type}${guid}'>${atwho-data-value}</a>",
@@ -52,8 +48,7 @@ use yii\helpers\Url;
             callbacks: {
                 matcher: function (flag, subtext, should_start_with_space) {
                     var match, regexp;
-
-                    regexp = new RegExp(/(\s+|^)@([\u00C0-\u1FFF\u2C00-\uD7FF\w\s\-\']+$)/); 
+                    regexp = new RegExp(/(\s+|^)@([\u00C0-\u1FFF\u2C00-\uD7FF\w\s\-\']*$)/); 
                     match = regexp.exec(subtext);
                     
                     if (match && typeof match[2] !== 'undefined') {
@@ -95,28 +90,25 @@ use yii\helpers\Url;
             limit: 100
         });
 
-
+        //it seems atwho detatches the original element so we have to do a requery
+        $editableContent = $('#<?php echo $id; ?>_contenteditable');
+        
         // remove placeholder text
-        $('#<?php echo $id; ?>_contenteditable').focus(function () {
-            $(this).removeClass('atwho-placeholder');
-
-            if ($(this).html() == placeholder) {
+        $editableContent.on('focus', function () {
+            if ($(this).hasClass('atwho-placeholder')) {
+                $(this).removeClass('atwho-placeholder');
                 $(this).html('');
                 $(this).focus();
             }
-        })
-        // add placeholder text, if input is empty
-        $('#<?php echo $id; ?>_contenteditable').focusout(function () {
+        }).on('focusout', function () {
+            $('#<?php echo $id; ?>').val(getPlainInput($(this).clone()));
+            // add placeholder text, if input is empty
             if ($(this).html() == "" || $(this).html() == " " || $(this).html() == " <br>") {
+                $(this).attr('spellcheck', false);
                 $(this).html(placeholder);
                 $(this).addClass('atwho-placeholder');
-            } else {
-                $('#<?php echo $id; ?>').val(getPlainInput($(this).clone()));
             }
-        })
-
-        $('#<?php echo $id; ?>_contenteditable').on('paste', function (event) {
-
+        }).on('paste', function (event) {
 
             // disable standard behavior
             event.preventDefault();
@@ -126,41 +118,34 @@ use yii\helpers\Url;
 
             if (event.originalEvent.clipboardData) {
                 // get clipboard data (Firefox, Webkit)
-                var text = event.originalEvent.clipboardData.getData('text/plain');
+                text = event.originalEvent.clipboardData.getData('text/plain');
             } else if (window.clipboardData) {
                 // get clipboard data (IE)
-                var text = window.clipboardData.getData("Text");
+                text = window.clipboardData.getData("Text");
             }
 
             // create jQuery object and paste content
             var $result = $('<div></div>').append(text);
-
             // set plain text at current cursor position
             insertTextAtCursor($result.text());
 
-        });
-
-
-        $('#<?php echo $id; ?>_contenteditable').keypress(function (e) {
+        }).on('keypress', function (e) {
             if (e.which == 13) {
                 // insert a space by hitting enter for a clean convert of user guids
                 insertTextAtCursor(' ');
             }
-        });
-
-        $('#<?php echo $id; ?>_contenteditable').on("shown.atwho", function (event) {
+            $(this).attr('spellcheck', true);
+        }).on("shown.atwho", function (event) {
             // set attribute for showing search results
             $(this).attr('data-query', '1');
-        });
-
-        $('#<?php echo $id; ?>_contenteditable').on("inserted.atwho", function (event, $li) {
+        }).on("inserted.atwho", function (event, $li) {
             // set attribute for showing search hint
             $(this).attr('data-query', '0');
+        }).on('clear', function(evt) {
+             $(this).html(placeholder);
+             $(this).addClass('atwho-placeholder');
         });
-
-    })
-    ;
-
+    });
 
     /**
      * Convert contenteditable div content into plain text
@@ -228,17 +213,50 @@ use yii\helpers\Url;
      * @param text insert string
      */
     function insertTextAtCursor(text) {
-        var sel, range, html;
-        sel = window.getSelection();
-        range = sel.getRangeAt(0);
+        var lastNode;
+        var sel = window.getSelection();
+        var range = sel.getRangeAt(0);
         range.deleteContents();
-        var newNode = document.createTextNode(text);
-        range.insertNode(newNode);
-        range.setStartAfter(newNode);
-        range.setEndAfter(newNode);
+        
+        //Remove leading line-breaks and spaces
+        text = text.replace(/^(?:\r\n|\r|\n)/g, '').trim();
+        
+        //We insert the lines reversed since we don't have to align the range
+        var lines = text.split(/(?:\r\n|\r|\n)/g).reverse();
+        
+        $.each(lines, function(i, line) {
+            //Prevent break after last line
+            if(i !== 0) {
+                var br = document.createElement("br");
+                range.insertNode(br);
+            }
+
+            //Insert new node
+            var newNode = document.createTextNode(line.trim());
+            range.insertNode(newNode);
+            
+            //Insert leading spaces as textnodes
+            var leadingSpaces = line.match(/^\s+/);
+            if(leadingSpaces) {
+                var spaceCount = leadingSpaces[0].length;
+                while(spaceCount > 0) {
+                    var spaceNode = document.createTextNode("\u00a0");
+                    range.insertNode(spaceNode);
+                    spaceCount--;
+                }
+            }
+            
+            //The last node is the first node since we insert reversed
+            if(i === 0) {
+                lastNode = newNode;
+            }
+        });
+        
+        //Align range
+        range.setStartAfter(lastNode);
+        range.setEndAfter(lastNode);
         sel.removeAllRanges();
         sel.addRange(range);
-
     }
 
 </script>
